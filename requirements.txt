@@ -3,6 +3,3 @@ opencv-python-headless
 mediapipe
 numpy
 Pillow
-libgl1
-libglib2.0-0
-libgles2
