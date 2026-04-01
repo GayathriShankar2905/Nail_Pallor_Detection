@@ -1,16 +1,14 @@
 import streamlit as st
 import numpy as np
+from PIL import Image
 
-# SAFE IMPORT
+# SAFE IMPORT (very important)
 try:
     import cv2
 except ImportError:
     cv2 = None
 
 from nai import analyze_nails
-
-from streamlit_webrtc import webrtc_streamer, VideoProcessorBase
-import av
 
 
 # =========================
@@ -38,31 +36,65 @@ st.divider()
 # CHECK CV2
 # =========================
 if cv2 is None:
-    st.error("⚠️ OpenCV failed to load.")
+    st.error("⚠️ OpenCV failed to load. Please redeploy.")
     st.stop()
 
-st.warning("⚠️ Allow camera access to start detection")
+# =========================
+# INSTRUCTIONS
+# =========================
+st.markdown("""
+### 📌 Instructions:
+- Place your hand clearly in front of camera  
+- Keep fingers slightly spread  
+- Ensure good lighting  
+- Avoid blur  
+""")
 
 # =========================
-# VIDEO PROCESSOR
+# CAMERA INPUT
 # =========================
-class NailProcessor(VideoProcessorBase):
-    def recv(self, frame):
-        img = frame.to_ndarray(format="bgr24")
-
-        try:
-            result_img, final_result, pale_count = analyze_nails(img)
-        except:
-            result_img = img
-
-        return av.VideoFrame.from_ndarray(result_img, format="bgr24")
-
+camera_image = st.camera_input("📷 Capture your hand")
 
 # =========================
-# WEBRTC STREAM
+# PROCESSING
 # =========================
-webrtc_streamer(
-    key="nail-detection",
-    video_processor_factory=NailProcessor,
-    media_stream_constraints={"video": True, "audio": False},
-)
+if camera_image is not None:
+
+    image = Image.open(camera_image)
+    image_np = np.array(image)
+
+    image_bgr = cv2.cvtColor(image_np, cv2.COLOR_RGB2BGR)
+
+    st.image(image, caption="Captured Image", use_container_width=True)
+
+    with st.spinner("Processing image..."):
+        result_img, final_result, pale_count = analyze_nails(image_bgr)
+
+    result_rgb = cv2.cvtColor(result_img, cv2.COLOR_BGR2RGB)
+
+    st.image(result_rgb, caption="Analyzed Image", use_container_width=True)
+
+    st.divider()
+
+    # =========================
+    # RESULT DISPLAY
+    # =========================
+    st.markdown("## 🧾 Result Summary")
+
+    if "High" in final_result:
+        st.error("🔴 High Anemia Risk")
+    elif "Moderate" in final_result:
+        st.warning("🟠 Moderate Risk")
+    else:
+        st.success("🟢 Normal")
+
+    st.markdown(f"**Pale Nails Detected:** {pale_count}")
+
+    st.divider()
+
+    st.markdown("""
+    <small>
+    ⚠️ This is a preliminary screening tool and not a medical diagnosis.  
+    Please consult a doctor for confirmation.
+    </small>
+    """, unsafe_allow_html=True)

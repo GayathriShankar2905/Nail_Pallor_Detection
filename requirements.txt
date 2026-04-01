@@ -1,7 +1,7 @@
 streamlit
 opencv-python-headless
 numpy
-pillow>=10.4.0
+pillow
 streamlit-webrtc
 mediapipe==0.10.14
 av
