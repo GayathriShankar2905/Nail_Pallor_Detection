@@ -1,15 +1,8 @@
 import streamlit as st
+import cv2
 import numpy as np
 from PIL import Image
-
-# SAFE IMPORT (very important)
-try:
-    import cv2
-except ImportError:
-    cv2 = None
-
 from nai import analyze_nails
-
 
 # =========================
 # PAGE CONFIG
@@ -20,7 +13,7 @@ st.set_page_config(
 )
 
 # =========================
-# HEADER
+# HEADER (Government Style)
 # =========================
 st.markdown("""
     <div style='text-align: center; padding: 10px'>
@@ -33,13 +26,6 @@ st.markdown("""
 st.divider()
 
 # =========================
-# CHECK CV2
-# =========================
-if cv2 is None:
-    st.error("⚠️ OpenCV failed to load. Please redeploy.")
-    st.stop()
-
-# =========================
 # INSTRUCTIONS
 # =========================
 st.markdown("""
@@ -48,6 +34,7 @@ st.markdown("""
 - Keep fingers slightly spread  
 - Ensure good lighting  
 - Avoid blur  
+
 """)
 
 # =========================
@@ -67,8 +54,9 @@ if camera_image is not None:
 
     st.image(image, caption="Captured Image", use_container_width=True)
 
-    with st.spinner("Processing image..."):
-        result_img, final_result, pale_count = analyze_nails(image_bgr)
+    st.info("Processing image... please wait")
+
+    result_img, final_result, pale_count = analyze_nails(image_bgr)
 
     result_rgb = cv2.cvtColor(result_img, cv2.COLOR_BGR2RGB)
 
@@ -92,6 +80,9 @@ if camera_image is not None:
 
     st.divider()
 
+    # =========================
+    # FOOTER
+    # =========================
     st.markdown("""
     <small>
     ⚠️ This is a preliminary screening tool and not a medical diagnosis.  
