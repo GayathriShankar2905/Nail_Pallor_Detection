@@ -1,91 +1,70 @@
 import streamlit as st
-import cv2
 import numpy as np
 from PIL import Image
-from nai import analyze_nails
+import cv2
+from hand import analyze_palm  # Fixed the import to match your filename
 
-# =========================
-# PAGE CONFIG
-# =========================
-st.set_page_config(
-    page_title="Nail Pallor Detection",
-    layout="centered"
-)
+# Page Configuration
+st.set_page_config(page_title="Palm Pallor Screening", layout="centered")
 
-# =========================
-# HEADER (Government Style)
-# =========================
+st.markdown("""
+    <style>
+    .main { background-color: #f5f7f9; }
+    .stButton>button {
+        width: 100%;
+        border-radius: 5px;
+        height: 3em;
+        background-color: #0B3D91;
+        color: white;
+    }
+    </style>
+""", unsafe_allow_html=True)
+
 st.markdown("""
     <div style='text-align: center; padding: 10px'>
-        <h2 style='color:#0B3D91;'>Government Health Screening System</h2>
-        <h3 style='margin-top:-10px;'>Nail Pallor Anemia Detection</h3>
-        <p style='color:gray;'>Early screening tool for anemia risk</p>
+        <h1 style='color:#0B3D91;'>VitalsCheck: Anemia Screening</h1>
+        <h3 style='margin-top:-10px; color:#555;'>Palm Pallor Detection System</h3>
     </div>
 """, unsafe_allow_html=True)
 
 st.divider()
 
-# =========================
-# INSTRUCTIONS
-# =========================
-st.markdown("""
-### 📌 Instructions:
-- Place your hand clearly in front of camera  
-- Keep fingers slightly spread  
-- Ensure good lighting  
-- Avoid blur  
+with st.sidebar:
+    st.header("📋 Setup & Tips")
+    st.info("1. Use bright, natural light.\n2. Keep palm flat and parallel to camera.\n3. Remove henna or ink.")
+    st.warning("⚠️ This is a screening tool, not a medical diagnosis.")
 
-""")
+camera_image = st.camera_input("📷 Position your palm in the center")
 
-# =========================
-# CAMERA INPUT
-# =========================
-camera_image = st.camera_input("📷 Capture your hand")
-
-# =========================
-# PROCESSING
-# =========================
 if camera_image is not None:
-
     image = Image.open(camera_image)
     image_np = np.array(image)
-
     image_bgr = cv2.cvtColor(image_np, cv2.COLOR_RGB2BGR)
 
-    st.image(image, caption="Captured Image", use_container_width=True)
+    with st.spinner("🔍 Analyzing Palmar Tissue..."):
+        result_img, final_result, pale_status = analyze_palm(image_bgr)
 
-    st.info("Processing image... please wait")
-
-    result_img, final_result, pale_count = analyze_nails(image_bgr)
-
+    st.subheader("Analysis View")
     result_rgb = cv2.cvtColor(result_img, cv2.COLOR_BGR2RGB)
-
-    st.image(result_rgb, caption="Analyzed Image", use_container_width=True)
+    st.image(result_rgb, caption="ROI Analysis", use_container_width=True)
 
     st.divider()
-
-    # =========================
-    # RESULT DISPLAY
-    # =========================
-    st.markdown("## 🧾 Result Summary")
-
+    
+    st.markdown("### 🧾 Clinical Summary")
+    
     if "High" in final_result:
-        st.error("🔴 High Anemia Risk")
+        st.error(f"### {final_result}")
     elif "Moderate" in final_result:
-        st.warning("🟠 Moderate Risk")
+        st.warning(f"### {final_result}")
     else:
-        st.success("🟢 Normal")
+        st.success(f"### {final_result}")
 
-    st.markdown(f"**Pale Nails Detected:** {pale_count}")
+    col1, col2 = st.columns(2)
+    with col1:
+        st.metric(label="Hand Detected", value="Yes" if "not detected" not in final_result else "No")
+    with col2:
+        val = "N/A" if "not detected" in final_result else ("Positive" if pale_status == 1 else "Negative")
+        st.metric(label="Pallor Finding", value=val)
 
-    st.divider()
-
-    # =========================
-    # FOOTER
-    # =========================
-    st.markdown("""
-    <small>
-    ⚠️ This is a preliminary screening tool and not a medical diagnosis.  
-    Please consult a doctor for confirmation.
-    </small>
-    """, unsafe_allow_html=True)
+st.divider()
+st.caption("Powered by MediaPipe & OpenCV LAB Analysis.")
